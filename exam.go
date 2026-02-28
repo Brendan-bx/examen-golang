@@ -41,11 +41,14 @@ func readConfig(data string) map[string]string {
 	lines := strings.Split(data, "\n")
 	config := make(map[string]string)
 	for _, line := range lines {
+		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		parts := strings.Split(line, "=")
-		config[parts[0]] = parts[1]
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) >= 2 {
+			config[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+		}
 	}
 	return config
 }
@@ -188,9 +191,9 @@ func menu(config map[string]string) string {
 		choixFolder.Scan()
 		defaultFolder := config["base_dir"]
 		outDir := config["out_dir"]
-		folderPath := choixFolder.Text()
+		folderPath := strings.TrimSpace(choixFolder.Text())
 		if folderPath == "" {
-			folderPath = defaultFolder
+			folderPath = strings.TrimSpace(defaultFolder)
 		}
 		fmt.Println("Dossier trouvé: ", folderPath)
 		fmt.Println("================================================ \n")
@@ -206,7 +209,7 @@ func menu(config map[string]string) string {
 		case "1":
 			analyseAllTxtFiles(folderPath)
 		case "2":
-			reportGlobalFolder(folderPath)
+			reportGlobalFolder(folderPath, outDir)
 		case "3":
 			listFiles(folderPath, outDir)
 		case "4":
@@ -426,7 +429,7 @@ func analyseAllTxtFiles(folderPath string) {
 	}
 }
 
-func reportGlobalFolder(folderPath string) {
+func reportGlobalFolder(folderPath string, outDir string) {
 	dirInfo, err := os.Stat(folderPath)
 	if err != nil {
 		fmt.Println("Erreur lors de la lecture du dossier:", err)
@@ -458,18 +461,19 @@ func reportGlobalFolder(folderPath string) {
 	if name == "" || name == "." {
 		name = filepath.Base(folderPath)
 	}
-
-	fmt.Println("=== Rapport global du dossier ===")
-	fmt.Println("Nom du dossier   :", name)
-	fmt.Println("Chemin           :", folderPath)
-	fmt.Println("Taille totale    :", totalSize, "octets")
-	if fileCount > 0 {
-		fmt.Println("Taille moyenne   :", totalSize/int64(fileCount), "octets par fichier")
+	if outDir == "" {
+		outDir = "out"
 	}
-	fmt.Println("Nombre de fichiers :", fileCount)
-	fmt.Println("Droits (mode)    :", dirInfo.Mode().String())
-	fmt.Println("Date modification:", dirInfo.ModTime().Format("02/01/2006 15:04:05"))
-	fmt.Println("=================================")
+	os.MkdirAll(outDir, 0755)
+	reportPath := filepath.Join(outDir, "report.txt")
+	file, err := os.Create(reportPath)
+	if err != nil {
+		fmt.Println("Erreur lors de la création du fichier", err)
+		return
+	}
+	defer file.Close()
+	file.WriteString(fmt.Sprintf("Nom du dossier   : %s\nChemin           : %s\nTaille totale    : %d octets\nTaille moyenne   : %d octets par fichier\nNombre de fichiers : %d\nDroits (mode)    : %s\nDate modification: %s", name, folderPath, totalSize, totalSize/int64(fileCount), fileCount, dirInfo.Mode().String(), dirInfo.ModTime().Format("02/01/2006 15:04:05")))
+	fmt.Println("Rapport global du dossier créé avec succès")
 }
 
 func listFiles(folderPath string, outDir string) {

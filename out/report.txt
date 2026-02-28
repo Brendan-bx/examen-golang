@@ -1,0 +1,7 @@
+Nom du dossier   : data
+Chemin           : data
+Taille totale    : 16282 octets
+Taille moyenne   : 3256 octets par fichier
+Nombre de fichiers : 5
+Droits (mode)    : drwxrwxrwx
+Date modification: 28/02/2026 12:56:36
